@@ -8,7 +8,7 @@
 <h1>Crypto Masters</h1>
 <form action="convert.php" method="post">
     <label for="amount">Amount</label>
-    <input id="amount" name="amount" type="number">
+    <input id="amount" name="amount">
     <br>
     <label for="crypto">Cryptocurrency</label>
     <select id="crypto" name="crypto">
