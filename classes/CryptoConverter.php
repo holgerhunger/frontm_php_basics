@@ -9,7 +9,7 @@ class CryptoConverter
     }
 
     // methods
-    public function convert(float $value): float|bool
+    public function convert(float $value = 1): float|bool
     {
         $crypto = $this->currencyCode;
         $api = "https://cex.io/api/ticker/$crypto/USD";

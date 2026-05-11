@@ -1,0 +1,191 @@
+## AI Assistant
+Empfehlung: php:8.3-apache
+Das offizielle PHP-Image mit Apache ist die einfachste und am besten geeignete Lösung für typische PHP-Webprojekte:``` yaml
+# docker-compose.yml
+services:
+  webserver:
+    image: php:8.3-apache
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+```
+
+
+Alternativen im Überblick
+Image
+Beschreibung
+Geeignet für
+php:8.3-apache
+PHP + Apache, sofort einsatzbereit
+Einfache PHP-Skripte, Einsteiger
+php:8.3-fpm + nginx
+PHP-FPM mit Nginx
+Produktionsnahe Umgebung
+webdevops/php-apache:8.3
+Erweitertes Apache-Image
+Vorkonfiguriert mit nützlichen Tools
+
+Vollständigeres Setup (mit docker-compose)
+Falls du mehr Kontrolle brauchst (z. B. mit Datenbank):``` yaml
+# docker-compose.yml
+services:
+  webserver:
+    image: php:8.3-apache
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+```
+
+
+PhpStorm Integration
+PhpStorm kann den Docker-Container direkt als PHP-Interpreter verwenden:
+Settings → PHP → CLI Interpreter
+Auf ... klicken → + → From Docker
+Den Container auswählen
+So laufen Run, Debug und Tests direkt im Container. 🚀
+
+Kurz gesagt: Für deine PHP-Skripte ist php:8.3-apache die schnellste und einfachste Wahl!
+
+## Me
+Nähere beschreibung zum nginx Setup.
+
+## AI Assistant
+
+Lass mich zuerst einen Blick auf die vorhandenen Dateien werfen, um das Setup besser anpassen zu können.# PHP-FPM + Nginx Setup – Ausführliche Erklärung
+📁 Empfohlene Projektstruktur```
+frontm_php_basics/
+├── docker/
+│   ├── nginx/
+│   │   └── default.conf       ← Nginx Konfiguration
+│   └── php/
+│       └── Dockerfile         ← PHP-FPM mit Erweiterungen
+├── docker-compose.yml
+├── api.php
+├── classes/
+├── index.php
+└── ...
+```
+
+
+1. docker-compose.yml``` yaml
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html                          # Dein Projektordner
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+
+  php:
+    build: ./docker/php
+    volumes:
+      - ./:/var/www/html                          # Gleicher Pfad wie Nginx!
+    expose:
+      - "9000"                                    # PHP-FPM Port (intern)
+```
+
+
+2. docker/nginx/default.conf``` nginx
+server {
+    listen 80;
+    server_name localhost;
+
+    root /var/www/html;
+    index index.php index.html;
+
+    # Normale Anfragen
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # PHP-Dateien → weiterleiten an PHP-FPM
+    location ~ \.php$ {
+        fastcgi_pass php:9000;            # "php" = Service-Name aus docker-compose
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Sicherheit: .htaccess blockieren
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
+
+
+3. docker/php/Dockerfile``` dockerfile
+FROM php:8.3-fpm
+
+# Nützliche PHP-Erweiterungen installieren
+RUN docker-php-ext-install pdo pdo_mysql
+
+# Optional: Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+```
+
+
+🔄 Wie funktioniert das Zusammenspiel?```
+Browser
+  │
+  │  HTTP Request (Port 8080)
+  ▼
+┌─────────┐
+│  Nginx  │  ← Nimmt Anfragen entgegen, liefert statische Dateien direkt aus
+└────┬────┘
+     │  FastCGI (Port 9000) – nur für .php Dateien
+     ▼
+┌──────────┐
+│ PHP-FPM  │  ← Führt PHP-Skripte aus (api.php, index.php, etc.)
+└──────────┘
+```
+
+Nginx ist nur ein Reverse Proxy – er kann kein PHP ausführen. PHP-FPM (FastCGI Process Manager) übernimmt die eigentliche PHP-Verarbeitung.
+🚀 Starten & Testen``` bash
+# Container bauen und starten
+docker-compose up --build
+
+# Im Hintergrund laufen lassen
+docker-compose up -d
+
+# Logs anzeigen
+docker-compose logs -f
+```
+
+Danach erreichbar unter:
+http://localhost:8080/ → index.php
+http://localhost:8080/api.php?code=BTC → deine API
+
+✅ Vorteile gegenüber Apache
+
+Apache
+Nginx + PHP-FPM
+Performance
+Gut
+Besser (besonders bei vielen Requests)
+Konfiguration
+Einfacher
+Etwas komplexer
+Produktionsnähe
+Mittel
+Sehr produktionsnah
+Ressourcenverbrauch
+Höher
+Geringer
